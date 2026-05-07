@@ -380,10 +380,11 @@ export function IntelligenceDataInput({
 
   const regions = [
     'North America',
-    'Latin America',
     'Europe',
     'Asia Pacific',
-    'Middle East & Africa'
+    'Latin America',
+    'Middle East',
+    'Africa'
   ]
 
   const endUserSegments = [

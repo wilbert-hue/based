@@ -182,10 +182,11 @@ export function CustomerIntelligenceHeatmap({ title, height = 600, filePath }: C
     // Default regions and segments if data is not available
     const defaultRegions = [
       'North America',
-      'Latin America',
       'Europe',
       'Asia Pacific',
-      'Middle East & Africa'
+      'Latin America',
+      'Middle East',
+      'Africa'
     ]
     
     const defaultSegments = [
@@ -212,8 +213,11 @@ export function CustomerIntelligenceHeatmap({ title, height = 600, filePath }: C
       // Get regions from dimensions
       const allRegions = data.dimensions.geographies.regions || defaultRegions
       
-      // Get end user segments from dimensions
-      const endUserDimension = data.dimensions.segments['By End-User']
+      // Prefer physician-oriented segments when present; otherwise first segment type in data
+      const segMap = data.dimensions.segments
+      const physicianKey =
+        'By Physician Suitability' in segMap ? 'By Physician Suitability' : Object.keys(segMap)[0]
+      const endUserDimension = physicianKey ? segMap[physicianKey] : undefined
       const segments = endUserDimension?.items || []
 
       const allSegments = segments.length > 0 ? [...segments] : [...defaultSegments]

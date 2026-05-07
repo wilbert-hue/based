@@ -4,51 +4,79 @@ const path = require('path');
 // Years: 2021-2033
 const years = [2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033];
 
-// Geographies with their region grouping
+// Geographies with hierarchical region → sub-region grouping (per spec images)
 const regions = {
   "North America": ["U.S.", "Canada"],
   "Europe": ["U.K.", "Germany", "Italy", "France", "Spain", "Russia", "Rest of Europe"],
   "Asia Pacific": ["China", "India", "Japan", "South Korea", "ASEAN", "Australia", "Rest of Asia Pacific"],
   "Latin America": ["Brazil", "Argentina", "Mexico", "Rest of Latin America"],
-  "Middle East & Africa": ["GCC", "South Africa", "Rest of Middle East & Africa"]
+  "Middle East": ["GCC", "Israel", "Rest of Middle East"],
+  "Africa": ["North Africa", "Central Africa", "South Africa"]
 };
 
-// New segment definitions with market share splits (proportions within each segment type)
+// Segment definitions (proportions within each segment type; must sum to 1.0 per type).
+// Image 2 also labels a column "By Application" (Hair removal / Skin Tone / Others); stored as
+// "By Consumer Application" here because JSON keys must be unique alongside "By Application" (clinical).
 const segmentTypes = {
-  "By Type": {
-    "Sub-Normothermic Perfusion (20–34°C)": 0.55,
-    "Warm or Normothermic Perfusion (35–37°C)": 0.45
+  "By Technology": {
+    "Fractional CO₂ Laser": 0.17,
+    "Nd:YAG Laser": 0.19,
+    "Picosecond laser": 0.16,
+    "Erbium (Er:YAG) Laser": 0.14,
+    "Diode Laser": 0.18,
+    "Alexandrite Laser": 0.16
   },
-  "By Organ Type": {
-    "Liver": 0.35,
-    "Heart": 0.22,
-    "Lung": 0.18,
-    "Kidney": 0.15,
-    "Others (Pancreas, Small bowel / Intestine, Composite Tissues / Limb Perfusion (emerging use cases))": 0.10
+  "By Modality": {
+    "Portable (tabletop/handheld)": 0.38,
+    "Standalone": 0.62
   },
-  "Application / Use Case": {
-    "Organ Preservation": 0.30,
-    "Viability Assessment": 0.25,
-    "Physiologic Transport": 0.20,
-    "Reconditioning Marginal Organs": 0.15,
-    "Others (Research Use / Protocol development)": 0.10
+  "By Application": {
+    "Resurfacing/Mild Resurfacing": 0.10,
+    "Wrinkles/Fine Lines": 0.11,
+    "Acne Scars": 0.09,
+    "Sun Damage": 0.10,
+    "Vascular Lesions": 0.08,
+    "Pigmentation/ Mild Pigmentation/ Benign pigmented lesions": 0.10,
+    "Skin Tightening": 0.10,
+    "Rosacea": 0.07,
+    "Tattoo Removal": 0.08,
+    "Skin Rejuvenation": 0.12
   },
-  "By End User": {
-    "Hospitals & Clinics": 0.40,
-    "Specialty Clinic/Centers": 0.25,
-    "Transplant Centers": 0.25,
-    "Others (Research Institutes/Centers, Organ Procurement Organizations, etc.)": 0.10
+  "By Consumer Application": {
+    "Hair removal": 0.42,
+    "Skin Tone": 0.35,
+    "Others": 0.23
+  },
+  "By Physician Suitability": {
+    "Dermatologists": 0.24,
+    "Plastic Surgeons": 0.22,
+    "Aesthetic Physicians": 0.21,
+    "General Practitioner/Physicians": 0.17,
+    "Others (Aspiring Physicians, etc)": 0.16
+  },
+  "By Setting Type": {
+    "Hospitals": 0.36,
+    "Dermatology /Aesthetic Clinics": 0.49,
+    "Others (Academic and Research Institutes, etc.)": 0.15
+  },
+  "By Purchase Mode": {
+    "Online": 0.43,
+    "Offline": 0.57
+  },
+  "By Pricing Catalog": {
+    "Low/Mid (~6000 US$)": 0.64,
+    "Premium (More than 6000 US$)": 0.36
   }
 };
 
-// Regional base values (USD Million) for 2021 - total market per region
-// Global Normothermic Machine Perfusion market ~$300M in 2021, growing ~12% CAGR
+// Regional base values (USD Million) for 2021 - total market per region (demo scale)
 const regionBaseValues = {
   "North America": 120,
   "Europe": 90,
   "Asia Pacific": 50,
   "Latin America": 20,
-  "Middle East & Africa": 15
+  "Middle East": 9,
+  "Africa": 6
 };
 
 // Country share within region (must sum to ~1.0)
@@ -57,7 +85,8 @@ const countryShares = {
   "Europe": { "U.K.": 0.18, "Germany": 0.22, "Italy": 0.12, "France": 0.16, "Spain": 0.10, "Russia": 0.08, "Rest of Europe": 0.14 },
   "Asia Pacific": { "China": 0.28, "India": 0.12, "Japan": 0.25, "South Korea": 0.12, "ASEAN": 0.10, "Australia": 0.07, "Rest of Asia Pacific": 0.06 },
   "Latin America": { "Brazil": 0.45, "Argentina": 0.15, "Mexico": 0.25, "Rest of Latin America": 0.15 },
-  "Middle East & Africa": { "GCC": 0.45, "South Africa": 0.25, "Rest of Middle East & Africa": 0.30 }
+  "Middle East": { "GCC": 0.48, "Israel": 0.22, "Rest of Middle East": 0.30 },
+  "Africa": { "North Africa": 0.38, "Central Africa": 0.27, "South Africa": 0.35 }
 };
 
 // Growth rates (CAGR) per region - slightly different for variety
@@ -66,39 +95,65 @@ const regionGrowthRates = {
   "Europe": 0.108,
   "Asia Pacific": 0.145,
   "Latin America": 0.125,
-  "Middle East & Africa": 0.118
+  "Middle East": 0.12,
+  "Africa": 0.118
 };
 
 // Segment-specific growth multipliers (relative to regional base CAGR)
 const segmentGrowthMultipliers = {
-  "By Type": {
-    "Sub-Normothermic Perfusion (20–34°C)": 0.95,
-    "Warm or Normothermic Perfusion (35–37°C)": 1.07
+  "By Technology": {
+    "Fractional CO₂ Laser": 1.05,
+    "Nd:YAG Laser": 1.04,
+    "Picosecond laser": 1.12,
+    "Erbium (Er:YAG) Laser": 1.03,
+    "Diode Laser": 1.06,
+    "Alexandrite Laser": 1.02
   },
-  "By Organ Type": {
-    "Liver": 1.08,
-    "Heart": 1.05,
-    "Lung": 1.12,
-    "Kidney": 0.95,
-    "Others (Pancreas, Small bowel / Intestine, Composite Tissues / Limb Perfusion (emerging use cases))": 1.20
+  "By Modality": {
+    "Portable (tabletop/handheld)": 1.10,
+    "Standalone": 0.97
   },
-  "Application / Use Case": {
-    "Organ Preservation": 0.92,
-    "Viability Assessment": 1.15,
-    "Physiologic Transport": 1.05,
-    "Reconditioning Marginal Organs": 1.18,
-    "Others (Research Use / Protocol development)": 1.10
+  "By Application": {
+    "Resurfacing/Mild Resurfacing": 1.04,
+    "Wrinkles/Fine Lines": 1.03,
+    "Acne Scars": 1.06,
+    "Sun Damage": 1.02,
+    "Vascular Lesions": 1.05,
+    "Pigmentation/ Mild Pigmentation/ Benign pigmented lesions": 1.04,
+    "Skin Tightening": 1.08,
+    "Rosacea": 1.05,
+    "Tattoo Removal": 1.09,
+    "Skin Rejuvenation": 1.03
   },
-  "By End User": {
-    "Hospitals & Clinics": 0.98,
-    "Specialty Clinic/Centers": 1.10,
-    "Transplant Centers": 1.08,
-    "Others (Research Institutes/Centers, Organ Procurement Organizations, etc.)": 1.05
+  "By Consumer Application": {
+    "Hair removal": 1.02,
+    "Skin Tone": 1.08,
+    "Others": 1.04
+  },
+  "By Physician Suitability": {
+    "Dermatologists": 1.03,
+    "Plastic Surgeons": 1.05,
+    "Aesthetic Physicians": 1.04,
+    "General Practitioner/Physicians": 1.06,
+    "Others (Aspiring Physicians, etc)": 1.07
+  },
+  "By Setting Type": {
+    "Hospitals": 0.98,
+    "Dermatology /Aesthetic Clinics": 1.05,
+    "Others (Academic and Research Institutes, etc.)": 1.02
+  },
+  "By Purchase Mode": {
+    "Online": 1.12,
+    "Offline": 0.96
+  },
+  "By Pricing Catalog": {
+    "Low/Mid (~6000 US$)": 1.05,
+    "Premium (More than 6000 US$)": 1.04
   }
 };
 
-// Volume multiplier: units per USD Million (rough: ~500 units per $1M for perfusion devices)
-const volumePerMillionUSD = 480;
+// Volume multiplier: units per USD Million (demo)
+const volumePerMillionUSD = 420;
 
 // Seeded pseudo-random for reproducibility
 let seed = 42;
@@ -200,4 +255,4 @@ console.log('Generated value.json and volume.json successfully');
 console.log('Value geographies:', Object.keys(valueData).length);
 console.log('Volume geographies:', Object.keys(volumeData).length);
 console.log('Segment types:', Object.keys(valueData['North America']));
-console.log('Sample - North America, By Type:', JSON.stringify(valueData['North America']['By Type'], null, 2));
+console.log('Sample - North America, By Technology:', JSON.stringify(valueData['North America']['By Technology'], null, 2));

@@ -4,6 +4,7 @@
  */
 
 import type { ComparisonData, DataRecord, FilterState } from './types'
+import { MACRO_GEOGRAPHY_KEYS } from './data-processor'
 
 /**
  * Calculate top regions based on market value for a specific year
@@ -185,8 +186,9 @@ export function getTopCountriesByCAGR(
     avgCAGR: cagrs.reduce((a, b) => a + b, 0) / cagrs.length
   }))
 
-  // Sort geographies by average CAGR and get top N
+  // Sort by CAGR (exclude macro regions so preset is sub-national / sub-regional markets only)
   const sortedGeographies = avgCAGRs
+    .filter(({ geography }) => !MACRO_GEOGRAPHY_KEYS.has(geography))
     .sort((a, b) => b.avgCAGR - a.avgCAGR) // Sort by CAGR descending
     .slice(0, topN)
     .map(item => item.geography)

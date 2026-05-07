@@ -1,28 +1,53 @@
 {
   "Global": {
-    "By Type": {
-      "Sub-Normothermic Perfusion (20–34°C)": {},
-      "Warm or Normothermic Perfusion (35–37°C)": {}
+    "By Technology": {
+      "Fractional CO₂ Laser": {},
+      "Nd:YAG Laser": {},
+      "Picosecond laser": {},
+      "Erbium (Er:YAG) Laser": {},
+      "Diode Laser": {},
+      "Alexandrite Laser": {}
     },
-    "By Organ Type": {
-      "Liver": {},
-      "Heart": {},
-      "Lung": {},
-      "Kidney": {},
-      "Others (Pancreas, Small bowel / Intestine, Composite Tissues / Limb Perfusion (emerging use cases))": {}
+    "By Modality": {
+      "Portable (tabletop/handheld)": {},
+      "Standalone": {}
     },
-    "Application / Use Case": {
-      "Organ Preservation": {},
-      "Viability Assessment": {},
-      "Physiologic Transport": {},
-      "Reconditioning Marginal Organs": {},
-      "Others (Research Use / Protocol development)": {}
+    "By Application": {
+      "Resurfacing/Mild Resurfacing": {},
+      "Wrinkles/Fine Lines": {},
+      "Acne Scars": {},
+      "Sun Damage": {},
+      "Vascular Lesions": {},
+      "Pigmentation/ Mild Pigmentation/ Benign pigmented lesions": {},
+      "Skin Tightening": {},
+      "Rosacea": {},
+      "Tattoo Removal": {},
+      "Skin Rejuvenation": {}
     },
-    "By End User": {
-      "Hospitals & Clinics": {},
-      "Specialty Clinic/Centers": {},
-      "Transplant Centers": {},
-      "Others (Research Institutes/Centers, Organ Procurement Organizations, etc.)": {}
+    "By Consumer Application": {
+      "Hair removal": {},
+      "Skin Tone": {},
+      "Others": {}
+    },
+    "By Physician Suitability": {
+      "Dermatologists": {},
+      "Plastic Surgeons": {},
+      "Aesthetic Physicians": {},
+      "General Practitioner/Physicians": {},
+      "Others (Aspiring Physicians, etc)": {}
+    },
+    "By Setting Type": {
+      "Hospitals": {},
+      "Dermatology /Aesthetic Clinics": {},
+      "Others (Academic and Research Institutes, etc.)": {}
+    },
+    "By Purchase Mode": {
+      "Online": {},
+      "Offline": {}
+    },
+    "By Pricing Catalog": {
+      "Low/Mid (~6000 US$)": {},
+      "Premium (More than 6000 US$)": {}
     },
     "By Region": {
       "North America": {
@@ -53,10 +78,15 @@
         "Mexico": {},
         "Rest of Latin America": {}
       },
-      "Middle East & Africa": {
+      "Middle East": {
         "GCC": {},
-        "South Africa": {},
-        "Rest of Middle East & Africa": {}
+        "Israel": {},
+        "Rest of Middle East": {}
+      },
+      "Africa": {
+        "North Africa": {},
+        "Central Africa": {},
+        "South Africa": {}
       }
     }
   }

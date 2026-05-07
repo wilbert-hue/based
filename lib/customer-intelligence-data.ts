@@ -48,7 +48,8 @@ const regionPrefixes: Record<string, string[]> = {
   'Latin America': ['Latino', 'Americas', 'Continental', 'Regional', 'National'],
   'Europe': ['European', 'Continental', 'Regional', 'National', 'Metropolitan'],
   'Asia Pacific': ['Asia', 'Pacific', 'Regional', 'National', 'Metropolitan'],
-  'Middle East & Africa': ['Middle East', 'Regional', 'National', 'Gulf', 'African']
+  'Middle East': ['Gulf', 'Regional', 'National', 'Metropolitan'],
+  'Africa': ['African', 'Regional', 'National', 'Continental']
 }
 
 function generateCustomerName(region: string, endUserSegment: string, index: number): string {
@@ -89,7 +90,8 @@ function generateCustomerCount(region: string, endUserSegment: string): number {
     'Europe': 1.0,
     'Asia Pacific': 1.3,
     'Latin America': 0.7,
-    'Middle East & Africa': 0.6
+    'Middle East': 0.55,
+    'Africa': 0.5
   }
 
   // Base multipliers by end user type
@@ -126,10 +128,11 @@ function generateCustomerCount(region: string, endUserSegment: string): number {
 export function generateCustomerIntelligenceData(): CustomerIntelligenceData[] {
   const regions = [
     'North America',
-    'Latin America',
     'Europe',
     'Asia Pacific',
-    'Middle East & Africa'
+    'Latin America',
+    'Middle East',
+    'Africa'
   ]
 
   const endUserSegments = [
@@ -323,10 +326,14 @@ export function parseCustomerIntelligenceFromData(rows: Record<string, any>[]): 
         normalizedRegion = 'Latin America'
       } else if (lowerRegion.includes('europe')) {
         normalizedRegion = 'Europe'
+      } else if (lowerRegion.includes('south africa') || lowerRegion.includes('north africa') || lowerRegion.includes('central africa')) {
+        normalizedRegion = 'Africa'
+      } else if (lowerRegion.includes('middle east') || lowerRegion.includes('gcc') || lowerRegion.includes('israel')) {
+        normalizedRegion = 'Middle East'
       } else if (lowerRegion.includes('asia') || lowerRegion.includes('pacific')) {
         normalizedRegion = 'Asia Pacific'
-      } else if (lowerRegion.includes('middle east') || lowerRegion.includes('africa')) {
-        normalizedRegion = 'Middle East & Africa'
+      } else if (lowerRegion.includes('africa')) {
+        normalizedRegion = 'Africa'
       } else {
         normalizedRegion = region
       }
@@ -346,11 +353,17 @@ export function parseCustomerIntelligenceFromData(rows: Record<string, any>[]): 
         } else if (value.includes('europe')) {
           normalizedRegion = 'Europe'
           break
+        } else if (value.includes('south africa') || value.includes('north africa') || value.includes('central africa')) {
+          normalizedRegion = 'Africa'
+          break
+        } else if (value.includes('middle east') || value.includes('gcc') || value.includes('israel')) {
+          normalizedRegion = 'Middle East'
+          break
         } else if (value.includes('asia') || value.includes('pacific')) {
           normalizedRegion = 'Asia Pacific'
           break
-        } else if (value.includes('middle east') || value.includes('africa')) {
-          normalizedRegion = 'Middle East & Africa'
+        } else if (value.includes('africa')) {
+          normalizedRegion = 'Africa'
           break
         }
       }
