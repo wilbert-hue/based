@@ -14,9 +14,13 @@ const regions = {
   "Africa": ["North Africa", "Central Africa", "South Africa"]
 };
 
-// Segment definitions (proportions within each segment type; must sum to 1.0 per type).
-// Image 2 also labels a column "By Application" (Hair removal / Skin Tone / Others); stored as
-// "By Consumer Application" here because JSON keys must be unique alongside "By Application" (clinical).
+// Shares within each segment type (must sum to ~1.0).
+// Hair removal / Skin Tone / Others are folded into By Application (same hierarchy as Excel) — weights use
+// ~1547.9 / 1630.7 clinical vs ~82.8 / 1630.7 consumer split so synthetic totals behave like the workbook.
+const APP_CLINICAL_WEIGHT = 1547.9 / 1630.7;
+const APP_CONSUMER_WEIGHT = 82.8 / 1630.7;
+const APP_CLINICAL_FACTOR = APP_CLINICAL_WEIGHT / 0.95;
+
 const segmentTypes = {
   "By Technology": {
     "Fractional CO₂ Laser": 0.17,
@@ -31,21 +35,19 @@ const segmentTypes = {
     "Standalone": 0.62
   },
   "By Application": {
-    "Resurfacing/Mild Resurfacing": 0.10,
-    "Wrinkles/Fine Lines": 0.11,
-    "Acne Scars": 0.09,
-    "Sun Damage": 0.10,
-    "Vascular Lesions": 0.08,
-    "Pigmentation/ Mild Pigmentation/ Benign pigmented lesions": 0.10,
-    "Skin Tightening": 0.10,
-    "Rosacea": 0.07,
-    "Tattoo Removal": 0.08,
-    "Skin Rejuvenation": 0.12
-  },
-  "By Consumer Application": {
-    "Hair removal": 0.42,
-    "Skin Tone": 0.35,
-    "Others": 0.23
+    "Resurfacing/Mild Resurfacing": 0.10 * APP_CLINICAL_FACTOR,
+    "Wrinkles/Fine Lines": 0.11 * APP_CLINICAL_FACTOR,
+    "Acne Scars": 0.09 * APP_CLINICAL_FACTOR,
+    "Sun Damage": 0.10 * APP_CLINICAL_FACTOR,
+    "Vascular Lesions": 0.08 * APP_CLINICAL_FACTOR,
+    "Pigmentation/ Mild Pigmentation/ Benign pigmented lesions": 0.10 * APP_CLINICAL_FACTOR,
+    "Skin Tightening": 0.10 * APP_CLINICAL_FACTOR,
+    "Rosacea": 0.07 * APP_CLINICAL_FACTOR,
+    "Tattoo Removal": 0.08 * APP_CLINICAL_FACTOR,
+    "Skin Rejuvenation": 0.12 * APP_CLINICAL_FACTOR,
+    "Hair removal": 0.42 * APP_CONSUMER_WEIGHT,
+    "Skin Tone": 0.35 * APP_CONSUMER_WEIGHT,
+    "Others": 0.23 * APP_CONSUMER_WEIGHT
   },
   "By Physician Suitability": {
     "Dermatologists": 0.24,
@@ -123,9 +125,7 @@ const segmentGrowthMultipliers = {
     "Skin Tightening": 1.08,
     "Rosacea": 1.05,
     "Tattoo Removal": 1.09,
-    "Skin Rejuvenation": 1.03
-  },
-  "By Consumer Application": {
+    "Skin Rejuvenation": 1.03,
     "Hair removal": 1.02,
     "Skin Tone": 1.08,
     "Others": 1.04

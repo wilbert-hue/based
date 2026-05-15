@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "data:laser": "py -3 scripts/convert_laser_dataset.py"
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.2.6",

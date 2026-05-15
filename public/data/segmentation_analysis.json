@@ -22,9 +22,7 @@
       "Skin Tightening": {},
       "Rosacea": {},
       "Tattoo Removal": {},
-      "Skin Rejuvenation": {}
-    },
-    "By Consumer Application": {
+      "Skin Rejuvenation": {},
       "Hair removal": {},
       "Skin Tone": {},
       "Others": {}
@@ -39,7 +37,7 @@
     "By Setting Type": {
       "Hospitals": {},
       "Dermatology /Aesthetic Clinics": {},
-      "Others (Academic and Research Institutes, etc.)": {}
+      "Others (Academic and Research Insititutes, Homecare Setting, etc.)": {}
     },
     "By Purchase Mode": {
       "Online": {},

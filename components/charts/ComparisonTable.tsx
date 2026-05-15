@@ -3,7 +3,38 @@
 import { useMemo, useState } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { filterData } from '@/lib/data-processor'
+import type { FilterState } from '@/lib/types'
 import { ArrowUp, ArrowDown, Download } from 'lucide-react'
+
+/** Forecast window for table CAGR (compound from start→end year) and share (mean yearly values over range). */
+const METRIC_YEAR_START = 2026
+const METRIC_YEAR_END = 2033
+
+function inclusiveYearRange(from: number, to: number): number[] {
+  const out: number[] = []
+  for (let y = from; y <= to; y++) out.push(y)
+  return out
+}
+
+function seriesAt(ts: Record<number, number>, y: number): number {
+  const v = ts[y]
+  return v !== undefined && v !== null && !Number.isNaN(v) ? v : 0
+}
+
+/** Mean value on [yearStart, yearEnd] inclusive. */
+function meanOverYears(ts: Record<number, number>, years: number[]): number {
+  if (years.length === 0) return 0
+  return years.reduce((s, y) => s + seriesAt(ts, y), 0) / years.length
+}
+
+/** CAGR from METRIC_YEAR_START to METRIC_YEAR_END (no. of compounds = difference in years). */
+function cagrForWindow(ts: Record<number, number>): number {
+  const startVal = seriesAt(ts, METRIC_YEAR_START)
+  const endVal = seriesAt(ts, METRIC_YEAR_END)
+  const n = METRIC_YEAR_END - METRIC_YEAR_START
+  if (startVal <= 0 || endVal <= 0 || n <= 0) return 0
+  return (Math.pow(endVal / startVal, 1 / n) - 1) * 100
+}
 
 interface ComparisonTableProps {
   title?: string
@@ -30,37 +61,56 @@ export function ComparisonTable({ title, height = 600 }: ComparisonTableProps) {
     const year = filters.yearRange[0] + Math.floor((filters.yearRange[1] - filters.yearRange[0]) / 2)
     const startYear = filters.yearRange[0]
     const endYear = filters.yearRange[1]
+    const shareYears = inclusiveYearRange(METRIC_YEAR_START, METRIC_YEAR_END)
 
-    // Helper function to parse CAGR (handles string, number, or null)
-    const parseCAGR = (cagr: any): number => {
-      if (cagr === null || cagr === undefined) return 0
-      if (typeof cagr === 'number') return cagr
-      if (typeof cagr === 'string') {
-        // Extract number from string like "5.2%" or "5.2"
-        const cagrStr = cagr.replace('%', '').trim()
-        return parseFloat(cagrStr) || 0
+    // Per-geography denominator: mean (2026–2033) of annual totals for THIS geography + segment type only
+    // (all breakdown rows visible when no segments are selected), not summed across multi-select geographies.
+    const denominatorMeanByGeo = new Map<string, number>()
+    const geographiesInTable = [...new Set(filtered.map(r => r.geography))]
+    for (const geo of geographiesInTable) {
+      const denominatorFilters: FilterState & { advancedSegments?: any[] } = {
+        ...filters,
+        geographies: [geo],
+        segments: [],
+        advancedSegments: [],
+        aggregationLevel: filters.aggregationLevel ?? null,
       }
-      return 0
+      const siblingRows = filterData(dataset, denominatorFilters).filter(
+        r => r.segment !== '__ALL_SEGMENTS__'
+      )
+      const annualTotals = shareYears.map(y =>
+        siblingRows.reduce((sum, r) => sum + seriesAt(r.time_series, y), 0)
+      )
+      denominatorMeanByGeo.set(
+        geo,
+        annualTotals.reduce((s, v) => s + v, 0) / shareYears.length
+      )
     }
 
     // Transform to table format
-    return filtered.map(record => ({
-      geography: record.geography,
-      segment: record.segment,
-      segmentType: record.segment_type,
-      currentValue: record.time_series[year] || 0,
-      startValue: record.time_series[startYear] || 0,
-      endValue: record.time_series[endYear] || 0,
-      growth: record.time_series[startYear] > 0 
-        ? (((record.time_series[endYear] || 0) - (record.time_series[startYear] || 0)) / record.time_series[startYear] * 100)
-        : 0,
-      cagr: parseCAGR(record.cagr),
-      marketShare: record.market_share || 0,
-      sparkline: Object.entries(record.time_series)
-        .filter(([y]) => parseInt(y) >= startYear && parseInt(y) <= endYear)
-        .sort(([a], [b]) => parseInt(a) - parseInt(b))
-        .map(([, value]) => value)
-    }))
+    return filtered.map(record => {
+      const meanDenom = denominatorMeanByGeo.get(record.geography) ?? 0
+      const meanSeg = meanOverYears(record.time_series, shareYears)
+      const sharePct =
+        meanDenom > 0 ? (meanSeg / meanDenom) * 100 : 0
+      return {
+        geography: record.geography,
+        segment: record.segment,
+        segmentType: record.segment_type,
+        currentValue: record.time_series[year] || 0,
+        startValue: record.time_series[startYear] || 0,
+        endValue: record.time_series[endYear] || 0,
+        growth: record.time_series[startYear] > 0 
+          ? (((record.time_series[endYear] || 0) - (record.time_series[startYear] || 0)) / record.time_series[startYear] * 100)
+          : 0,
+        cagr: cagrForWindow(record.time_series),
+        marketShare: sharePct,
+        sparkline: Object.entries(record.time_series)
+          .filter(([y]) => parseInt(y, 10) >= startYear && parseInt(y, 10) <= endYear)
+          .sort(([a], [b]) => parseInt(a, 10) - parseInt(b, 10))
+          .map(([, value]) => value)
+      }
+    })
   }, [data, filters])
 
   const sortedData = useMemo(() => {
@@ -93,7 +143,15 @@ export function ComparisonTable({ title, height = 600 }: ComparisonTableProps) {
   }
 
   const exportToCSV = () => {
-    const headers = ['Geography', 'Segment', 'Type', 'Current Value', 'Growth %', 'CAGR %', 'Market Share %']
+    const headers = [
+      'Geography',
+      'Segment',
+      'Type',
+      'Current Value',
+      'Growth %',
+      `CAGR % (${METRIC_YEAR_START}-${METRIC_YEAR_END})`,
+      `Share % mean (${METRIC_YEAR_START}-${METRIC_YEAR_END})`
+    ]
     const rows = sortedData.map(row => [
       row.geography,
       row.segment,
@@ -162,6 +220,9 @@ export function ComparisonTable({ title, height = 600 }: ComparisonTableProps) {
           </h3>
           <p className="text-sm text-black mt-1">
             Year: {year} | Values in {valueUnit}
+            <span className="block text-xs text-gray-600 mt-0.5">
+              CAGR {METRIC_YEAR_START}→{METRIC_YEAR_END}; Share % = mean segment ({METRIC_YEAR_START}–{METRIC_YEAR_END}) ÷ mean same-region total for that segment type
+            </span>
           </p>
         </div>
         <button
@@ -232,7 +293,7 @@ export function ComparisonTable({ title, height = 600 }: ComparisonTableProps) {
                 onClick={() => handleSort('cagr')}
               >
                 <div className="flex items-center justify-end gap-1">
-                  CAGR %
+                  CAGR % ({METRIC_YEAR_START}–{METRIC_YEAR_END})
                   {sortField === 'cagr' && (
                     sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
                   )}
@@ -243,7 +304,7 @@ export function ComparisonTable({ title, height = 600 }: ComparisonTableProps) {
                 onClick={() => handleSort('marketShare')}
               >
                 <div className="flex items-center justify-end gap-1">
-                  Share %
+                  Share % (mean {METRIC_YEAR_START}–{METRIC_YEAR_END})
                   {sortField === 'marketShare' && (
                     sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
                   )}
@@ -287,7 +348,7 @@ export function ComparisonTable({ title, height = 600 }: ComparisonTableProps) {
       </div>
 
       <div className="mt-4 text-center text-sm text-black">
-        Showing {sortedData.length} records | {filters.yearRange[0]} - {filters.yearRange[1]}
+        Showing {sortedData.length} records | Chart year range {filters.yearRange[0]} - {filters.yearRange[1]} | CAGR/share window {METRIC_YEAR_START}-{METRIC_YEAR_END}
       </div>
     </div>
   )

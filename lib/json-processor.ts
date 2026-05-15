@@ -1152,9 +1152,13 @@ async function processSegmentTypeAsync(
           cagr = data.CAGR
         }
       } else {
-        // Calculate CAGR from base year (2023) to forecast year
-        const cagrStartYear = allYears[0] + 4 // Base year = 2023 for 2019-2031 data
-        const cagrEndYear = allYears[allYears.length - 1]
+        // CAGR for 2026–2033 forecast window; clamp to available years if data range differs
+        const fallbackStartYear = 2026
+        const fallbackEndYear = 2033
+        const dataMinY = Math.min(...allYears)
+        const dataMaxY = Math.max(...allYears)
+        const cagrStartYear = Math.min(Math.max(fallbackStartYear, dataMinY), dataMaxY)
+        const cagrEndYear = Math.min(Math.max(fallbackEndYear, dataMinY), dataMaxY)
         const startVal = timeSeries[cagrStartYear] || 0
         const endVal = timeSeries[cagrEndYear] || 0
         const numYears = cagrEndYear - cagrStartYear
